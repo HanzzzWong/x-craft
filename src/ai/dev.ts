@@ -1,1 +1,2 @@
-// Flows will be imported for their side effects in this file.
+import '@/ai/flows/analyze-image-recyclables.ts';
+import '@/ai/flows/suggest-diy-projects.ts';
