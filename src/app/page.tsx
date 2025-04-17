@@ -6,7 +6,7 @@ import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/compo
 import {Textarea} from '@/components/ui/textarea';
 import {analyzeImageForRecyclables} from '@/ai/flows/analyze-image-recyclables';
 import {suggestDIYProjects} from '@/ai/flows/suggest-diy-projects';
-import {getYouTubeVideos, YouTubeVideo} from '@/services/youtube';
+import {YouTubeVideo, getYouTubeVideos} from '@/services/youtube';
 import {Icons} from '@/components/icons';
 import {useToast} from "@/hooks/use-toast"
 import {useDropzone} from 'react-dropzone'
@@ -169,7 +169,7 @@ export default function Home() {
           {projects.length > 0 && (
             <div className="mt-2">
               <p>Suggested Projects:</p>
-              <ul>
+              <ul className="list-disc list-inside">
                 {projects.map((project, index) => (
                   <li key={index} className="cursor-pointer hover:underline" onClick={() => handleProjectClick(project)}>
                     {project.title}
@@ -241,3 +241,4 @@ export default function Home() {
     </div>
   );
 }
+
