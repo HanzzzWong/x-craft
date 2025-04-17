@@ -19,12 +19,44 @@ export interface YouTubeVideo {
  * @returns A promise that resolves to an array of YouTubeVideo objects.
  */
 export async function getYouTubeVideos(query: string): Promise<YouTubeVideo[]> {
-  // TODO: Implement this by calling an API.
+  const apiKey = process.env.YOUTUBE_API_KEY;
 
-  return [
-    {
-      title: 'DIY Project Tutorial',
-      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    },
-  ];
+  if (!apiKey) {
+    console.warn('YOUTUBE_API_KEY is not defined.  Returning mock YouTube videos.');
+    return [
+      {
+        title: 'DIY Project Tutorial',
+        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      },
+    ];
+  }
+
+  try {
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=3&q=${encodeURIComponent(
+        query
+      )}&key=${apiKey}&type=video`
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.items) {
+      console.log('No videos found for query:', query);
+      return [];
+    }
+
+    const videos: YouTubeVideo[] = data.items.map((item: any) => ({
+      title: item.snippet.title,
+      url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+    }));
+
+    return videos;
+  } catch (error) {
+    console.error('Error fetching YouTube videos:', error);
+    return [];
+  }
 }
