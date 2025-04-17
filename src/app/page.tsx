@@ -20,6 +20,15 @@ interface Project {
   videos?: YouTubeVideo[];
 }
 
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+}
+
 export default function Home() {
   const [images, setImages] = useState<File[]>([]);
   const [recyclableItems, setRecyclableItems] = useState<string[]>([]);
@@ -45,8 +54,12 @@ export default function Home() {
       return;
     }
 
-    const imageUrls = images.map(image => URL.createObjectURL(image));
-    const analysisResults = await Promise.all(imageUrls.map(photoUrl => analyzeImageForRecyclables({photoUrl})));
+    const analysisResults = await Promise.all(
+      images.map(async image => {
+        const photoBase64 = await fileToBase64(image);
+        return analyzeImageForRecyclables({ photoBase64 });
+      })
+    );
 
     if (analysisResults) {
       const items = analysisResults.flatMap(result => result.items.map(item => item.name));

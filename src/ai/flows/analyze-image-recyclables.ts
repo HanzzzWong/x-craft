@@ -12,7 +12,7 @@ import {ai} from '@/ai/ai-instance';
 import {z} from 'genkit';
 
 const AnalyzeImageForRecyclablesInputSchema = z.object({
-  photoUrl: z.string().describe('The URL of the image to analyze.'),
+  photoBase64: z.string().describe('The base64 encoded string of the image to analyze.'),
 });
 export type AnalyzeImageForRecyclablesInput = z.infer<
   typeof AnalyzeImageForRecyclablesInputSchema
@@ -42,7 +42,7 @@ const prompt = ai.definePrompt({
   name: 'analyzeImageForRecyclablesPrompt',
   input: {
     schema: z.object({
-      photoUrl: z.string().describe('The URL of the image to analyze.'),
+      photoBase64: z.string().describe('The base64 encoded string of the image to analyze.'),
     }),
   },
   output: {
@@ -59,9 +59,9 @@ const prompt = ai.definePrompt({
   },
   prompt: `You are an AI expert in recyclable materials.
 
-You will analyze the image at the given URL and identify the different recyclable items in the image, along with their quantities.
+You will analyze the image and identify the different recyclable items in the image, along with their quantities.
 
-Image: {{media url=photoUrl contentType="image/jpeg"}}
+Image: {{media url=photoBase64 contentType="image/jpeg"}}
 
 Return the list of items and their quantities.
 `,
