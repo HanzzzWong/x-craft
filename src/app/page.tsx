@@ -1,13 +1,12 @@
 'use client';
 
-import {useState, useCallback} from 'react';
+import {useState, useCallback, useEffect} from 'react';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Textarea} from '@/components/ui/textarea';
 import {analyzeImageForRecyclables} from '@/ai/flows/analyze-image-recyclables';
 import {suggestDIYProjects} from '@/ai/flows/suggest-diy-projects';
 import {getYouTubeVideos, YouTubeVideo} from '@/services/youtube';
-import {useEffect} from 'react';
 import {Icons} from '@/components/icons';
 import {useToast} from "@/hooks/use-toast"
 import {useDropzone} from 'react-dropzone'
@@ -190,7 +189,7 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <p>Required Items:</p>
-            <ul>
+            <ul className="list-disc list-inside">
               {selectedProject.requiredItems.map((item, index) => (
                 <li key={index}>{item}</li>
               ))}
