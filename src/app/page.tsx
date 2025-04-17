@@ -1,8 +1,7 @@
 'use client';
 
-import {useState} from 'react';
+import {useState, useCallback} from 'react';
 import {Button} from '@/components/ui/button';
-import {Input} from '@/components/ui/input';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Textarea} from '@/components/ui/textarea';
 import {analyzeImageForRecyclables} from '@/ai/flows/analyze-image-recyclables';
@@ -10,6 +9,8 @@ import {suggestDIYProjects} from '@/ai/flows/suggest-diy-projects';
 import {getYouTubeVideos, YouTubeVideo} from '@/services/youtube';
 import {useEffect} from 'react';
 import {Icons} from '@/components/icons';
+import {useToast} from "@/hooks/use-toast"
+import {useDropzone} from 'react-dropzone'
 
 interface Project {
   title: string;
@@ -20,35 +21,72 @@ interface Project {
 }
 
 export default function Home() {
-  const [imageUrl, setImageUrl] = useState('');
+  const [images, setImages] = useState<File[]>([]);
   const [recyclableItems, setRecyclableItems] = useState<string[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [helpVideos, setHelpVideos] = useState<YouTubeVideo[]>([]);
+  const { toast } = useToast()
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    setImages(acceptedFiles);
+  }, []);
+
+  const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop, accept: {'image/*': ['.jpeg', '.png', '.jpg']}})
 
   const handleImageAnalysis = async () => {
-    if (!imageUrl) {
-      alert('Please enter an image URL');
+    if (images.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No images uploaded",
+        description: "Please upload one or more images to analyze.",
+      })
       return;
     }
 
-    const analysisResult = await analyzeImageForRecyclables({photoUrl: imageUrl});
-    if (analysisResult) {
-      const items = analysisResult.items.map(item => item.name);
-      setRecyclableItems(items);
+    const imageUrls = images.map(image => URL.createObjectURL(image));
+    const analysisResults = await Promise.all(imageUrls.map(photoUrl => analyzeImageForRecyclables({photoUrl})));
+
+    if (analysisResults) {
+      const items = analysisResults.flatMap(result => result.items.map(item => item.name));
+      setRecyclableItems([...new Set(items)]); // remove duplicates
+      toast({
+        title: "Image analysis complete",
+        description: "Recyclable items identified successfully.",
+      })
+    } else {
+       toast({
+        variant: "destructive",
+        title: "Image analysis failed",
+        description: "Could not identify recyclable items.",
+      })
     }
   };
 
   const handleProjectSuggestion = async () => {
     if (recyclableItems.length === 0) {
-      alert('No recyclable items identified. Please analyze an image first.');
+      toast({
+         variant: "destructive",
+        title: "No recyclable items",
+        description: "No recyclable items identified. Please analyze an image first.",
+      })
       return;
     }
 
     const suggestionResult = await suggestDIYProjects({recyclableItems});
     if (suggestionResult) {
       setProjects(suggestionResult.projects);
+       toast({
+        title: "Project suggestions generated",
+        description: "DIY project ideas based on the identified recyclable items.",
+      })
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Project suggestion failed",
+        description: "Could not generate project suggestions.",
+      })
     }
   };
 
@@ -75,17 +113,24 @@ export default function Home() {
       <Card>
         <CardHeader>
           <CardTitle>Image Analysis</CardTitle>
-          <CardDescription>Identify recyclable items from an image URL.</CardDescription>
+          <CardDescription>Identify recyclable items from uploaded images.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
-          <Input
-            type="url"
-            placeholder="Enter image URL"
-            value={imageUrl}
-            onChange={e => setImageUrl(e.target.value)}
-          />
-          <Button onClick={handleImageAnalysis} className="bg-primary text-primary-foreground hover:bg-primary/80">
-            Analyze Image
+          <div {...getRootProps()} className="dropzone w-full p-4 border-2 border-dashed rounded-md text-center cursor-pointer">
+            <input {...getInputProps()} />
+            {
+              isDragActive ?
+                <p>Drop the images here ...</p> :
+                <>
+                  <p>Drag 'n' drop some images here, or click to select images</p>
+                  {images.length > 0 && (
+                    <p>{images.length} images selected</p>
+                  )}
+                </>
+            }
+          </div>
+          <Button onClick={handleImageAnalysis} className="bg-primary text-primary-foreground hover:bg-primary/80" disabled={images.length === 0}>
+            Analyze Images
           </Button>
           {recyclableItems.length > 0 && (
             <div className="mt-2">
