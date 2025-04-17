@@ -9,7 +9,9 @@ import {suggestDIYProjects} from '@/ai/flows/suggest-diy-projects';
 import {YouTubeVideo, getYouTubeVideos} from '@/services/youtube';
 import {Icons} from '@/components/icons';
 import {useToast} from "@/hooks/use-toast"
+import {Toaster} from "@/components/ui/toaster"
 import {useDropzone} from 'react-dropzone'
+import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert";
 
 interface Project {
   title: string;
@@ -145,13 +147,15 @@ export default function Home() {
             Analyze Images
           </Button>
           {recyclableItems.length > 0 && (
-            <div className="mt-2">
-              <p>Identified Recyclable Items:</p>
-              <ul>
+            <div className="mt-4">
+              <p className="font-semibold">Identified Recyclable Items:</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
                 {recyclableItems.map((item, index) => (
-                  <li key={index}>{item}</li>
+                  <div key={index} className="rounded-md shadow-sm border border-border p-3">
+                    {item}
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           )}
         </CardContent>
@@ -168,7 +172,7 @@ export default function Home() {
           </Button>
           {projects.length > 0 && (
             <div className="mt-2">
-              <p>Suggested Projects:</p>
+              <p className="font-semibold">Suggested Projects:</p>
               <ul className="list-disc list-inside">
                 {projects.map((project, index) => (
                   <li key={index} className="cursor-pointer hover:underline" onClick={() => handleProjectClick(project)}>
@@ -188,7 +192,7 @@ export default function Home() {
             <CardDescription>{selectedProject.description}</CardDescription>
           </CardHeader>
           <CardContent>
-            <p>Required Items:</p>
+            <p className="font-semibold">Required Items:</p>
             <ul className="list-disc list-inside">
               {selectedProject.requiredItems.map((item, index) => (
                 <li key={index}>{item}</li>
@@ -238,6 +242,7 @@ export default function Home() {
           </CardContent>
         </Card>
       )}
+       <Toaster />
     </div>
   );
 }
