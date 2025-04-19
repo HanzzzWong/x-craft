@@ -87,3 +87,72 @@ body {
   }
 }
 
+/* 3D Effects and Enhanced Styling */
+@layer components {
+  /* Card 3D effect */
+  .card {
+    @apply transition-all duration-300 hover:shadow-xl;
+    transform-style: preserve-3d;
+    perspective: 1000px;
+  }
+  
+  .card:hover {
+    transform: translateY(-5px) rotateX(2deg) rotateY(2deg);
+    box-shadow: 0 30px 50px -20px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Button 3D effects */
+  .btn-3d {
+    @apply relative overflow-hidden transition-all duration-300;
+    transform-style: preserve-3d;
+  }
+  
+  .btn-3d:hover {
+    transform: translateY(-2px);
+  }
+  
+  .btn-3d:active {
+    transform: translateY(1px);
+  }
+  
+  /* Glowing shadow effect */
+  .shadow-glow {
+    box-shadow: 0 0 15px rgba(var(--primary), 0.3), 
+                0 0 30px rgba(var(--primary), 0.1);
+  }
+  
+  /* Glass morphism effect */
+  .glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Animated background gradient */
+  .bg-animated {
+    background: linear-gradient(
+      -45deg, 
+      hsl(var(--primary) / 0.4),
+      hsl(var(--accent) / 0.4), 
+      hsl(var(--primary) / 0.2)
+    );
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+  }
+  
+  @keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  /* Fade-in animation */
+  .animated-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+}
+

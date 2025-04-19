@@ -123,35 +123,56 @@ export default function Home() {
   }, [selectedProject]);
 
   return (
-    <div className="container mx-auto p-4 flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Image Analysis</CardTitle>
+    <div className="container mx-auto p-4 flex flex-col gap-8">
+      <div className="text-center mb-4">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          Transform Recyclables into Amazing Creations
+        </h1>
+        <p className="text-muted-foreground mt-2">Upload images of recyclable items and get creative DIY project ideas</p>
+      </div>
+
+      <Card className="card overflow-hidden border-primary/20">
+        <CardHeader className="bg-gradient-to-r from-primary/5 to-accent/5">
+          <CardTitle className="flex items-center gap-2">
+            <Icons.image className="h-5 w-5" />
+            Image Analysis
+          </CardTitle>
           <CardDescription>Identify recyclable items from uploaded images.</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          <div {...getRootProps()} className="dropzone w-full p-4 border-2 border-dashed rounded-md text-center cursor-pointer">
+        <CardContent className="flex flex-col gap-4 p-6">
+          <div 
+            {...getRootProps()} 
+            className="dropzone w-full p-8 border-2 border-dashed rounded-md text-center cursor-pointer transition-all hover:bg-primary/5 hover:border-primary"
+          >
             <input {...getInputProps()} />
             {
               isDragActive ?
-                <p>Drop the images here ...</p> :
+                <p className="text-primary font-medium">Drop the images here ...</p> :
                 <>
+                  <Icons.upload className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
                   <p>Drag 'n' drop some images here, or click to select images</p>
                   {images.length > 0 && (
-                    <p>{images.length} images selected</p>
+                    <p className="mt-2 font-medium">{images.length} images selected</p>
                   )}
                 </>
             }
           </div>
-          <Button onClick={handleImageAnalysis} className="bg-primary text-primary-foreground hover:bg-primary/80" disabled={images.length === 0}>
-            Analyze Images
+          <Button 
+            onClick={handleImageAnalysis} 
+            className="btn-3d w-full bg-primary text-primary-foreground hover:bg-primary/90" 
+            disabled={images.length === 0}
+          >
+            <Icons.search className="mr-2 h-4 w-4" /> Analyze Images
           </Button>
           {recyclableItems.length > 0 && (
-            <div className="mt-4">
-              <p className="font-semibold">Identified Recyclable Items:</p>
+            <div className="mt-4 animated-fade-in">
+              <p className="font-semibold mb-3">Identified Recyclable Items:</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
                 {recyclableItems.map((item, index) => (
-                  <div key={index} className="rounded-md shadow-sm border border-border p-3">
+                  <div 
+                    key={index} 
+                    className="rounded-md shadow-sm border border-primary/20 p-3 bg-primary/5 transition-all hover:shadow-md hover:scale-105"
+                  >
                     {item}
                   </div>
                 ))}
@@ -161,22 +182,34 @@ export default function Home() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Project Suggestions</CardTitle>
+      <Card className="card overflow-hidden border-primary/20">
+        <CardHeader className="bg-gradient-to-r from-primary/5 to-accent/5">
+          <CardTitle className="flex items-center gap-2">
+            <Icons.lightbulb className="h-5 w-5" />
+            Project Suggestions
+          </CardTitle>
           <CardDescription>Get DIY project ideas based on identified recyclable items.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button onClick={handleProjectSuggestion} className="bg-primary text-primary-foreground hover:bg-primary/80" disabled={recyclableItems.length === 0}>
-            Suggest Projects
+        <CardContent className="flex flex-col gap-4 p-6">
+          <Button 
+            onClick={handleProjectSuggestion} 
+            className="btn-3d w-full bg-primary text-primary-foreground hover:bg-primary/90" 
+            disabled={recyclableItems.length === 0}
+          >
+            <Icons.sparkles className="mr-2 h-4 w-4" /> Suggest Projects
           </Button>
           {projects.length > 0 && (
-            <div className="mt-2">
-              <p className="font-semibold">Suggested Projects:</p>
-              <ul className="list-disc list-inside">
+            <div className="mt-2 animated-fade-in">
+              <p className="font-semibold mb-3">Suggested Projects:</p>
+              <ul className="space-y-2">
                 {projects.map((project, index) => (
-                  <li key={index} className="cursor-pointer hover:underline" onClick={() => handleProjectClick(project)}>
-                    {project.title}
+                  <li 
+                    key={index} 
+                    className="cursor-pointer p-3 rounded-md hover:bg-primary/5 transition-all border border-transparent hover:border-primary/20 flex items-center"
+                    onClick={() => handleProjectClick(project)}
+                  >
+                    <Icons.chevronRight className="mr-2 h-4 w-4 text-primary" />
+                    <span className="font-medium">{project.title}</span>
                   </li>
                 ))}
               </ul>
@@ -186,52 +219,66 @@ export default function Home() {
       </Card>
 
       {selectedProject && (
-        <Card>
-          <CardHeader>
+        <Card className="card overflow-hidden border-primary/20">
+          <CardHeader className="bg-gradient-to-r from-primary/5 to-accent/5">
             <CardTitle>{selectedProject.title}</CardTitle>
             <CardDescription>{selectedProject.description}</CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="font-semibold">Required Items:</p>
-            <ul className="list-disc list-inside">
-              {selectedProject.requiredItems.map((item, index) => (
-                <li key={index}>{item}</li>
-              ))}
-            </ul>
+          <CardContent className="flex flex-col gap-6 p-6">
+            <div className="glass p-4 rounded-md">
+              <p className="font-semibold mb-2">Required Items:</p>
+              <ul className="list-disc list-inside space-y-1">
+                {selectedProject.requiredItems.map((item, index) => (
+                  <li key={index} className="text-primary-foreground/80">{item}</li>
+                ))}
+              </ul>
+            </div>
 
-            <h3 className="mt-4">Step {currentStep + 1}:</h3>
-            <Textarea readOnly value={selectedProject.steps[currentStep]} className="mb-2" />
+            <div className="border border-primary/20 rounded-md p-4 bg-gradient-to-r from-primary/5 to-transparent">
+              <h3 className="font-semibold mb-3">Step {currentStep + 1} of {selectedProject.steps.length}:</h3>
+              <Textarea 
+                readOnly 
+                value={selectedProject.steps[currentStep]} 
+                className="mb-4 min-h-[100px] bg-white/50 focus-visible:ring-primary" 
+              />
 
-            <div className="flex justify-between">
-              <Button
-                onClick={() => setCurrentStep(currentStep - 1)}
-                disabled={currentStep === 0}
-                className="bg-primary text-primary-foreground hover:bg-primary/80"
-              >
-                Previous Step
-              </Button>
-              <Button
-                onClick={() => handleHelpClick(selectedProject.steps[currentStep])}
-                className="bg-accent text-primary-foreground hover:bg-accent/80"
-              >
-                Help?
-              </Button>
-              <Button
-                onClick={() => setCurrentStep(currentStep + 1)}
-                disabled={currentStep === selectedProject.steps.length - 1}
-                className="bg-primary text-primary-foreground hover:bg-primary/80"
-              >
-                Next Step
-              </Button>
+              <div className="flex justify-between mt-4">
+                <Button
+                  onClick={() => setCurrentStep(currentStep - 1)}
+                  disabled={currentStep === 0}
+                  className="btn-3d bg-primary/80 text-primary-foreground hover:bg-primary/90 flex items-center"
+                >
+                  <Icons.arrowLeft className="mr-2 h-4 w-4" /> Previous Step
+                </Button>
+                <Button
+                  onClick={() => handleHelpClick(selectedProject.steps[currentStep])}
+                  className="btn-3d bg-accent text-accent-foreground hover:bg-accent/90 flex items-center"
+                >
+                  <Icons.helpCircle className="mr-2 h-4 w-4" /> Help?
+                </Button>
+                <Button
+                  onClick={() => setCurrentStep(currentStep + 1)}
+                  disabled={currentStep === selectedProject.steps.length - 1}
+                  className="btn-3d bg-primary/80 text-primary-foreground hover:bg-primary/90 flex items-center"
+                >
+                  Next Step <Icons.arrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             {helpVideos.length > 0 && (
-              <div className="mt-4">
-                <h4>Help Videos:</h4>
-                <ul>
+              <div className="mt-4 animated-fade-in">
+                <h4 className="font-semibold mb-2">Help Videos:</h4>
+                <ul className="space-y-2">
                   {helpVideos.map((video, index) => (
-                    <li key={index}>
-                      <a href={video.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                    <li key={index} className="p-2 hover:bg-primary/5 rounded-md transition-all">
+                      <a 
+                        href={video.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-primary hover:underline flex items-center"
+                      >
+                        <Icons.video className="mr-2 h-4 w-4" />
                         {video.title}
                       </a>
                     </li>
@@ -242,7 +289,7 @@ export default function Home() {
           </CardContent>
         </Card>
       )}
-       <Toaster />
+      <Toaster />
     </div>
   );
 }
