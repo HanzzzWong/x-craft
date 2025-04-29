@@ -119,53 +119,7 @@ export async function saveCompletedProject(project: ProjectWithDetails): Promise
     };
     console.log('Project details:', simplifiedProject);
     
-    // Ensure we have a valid project ID
-    if (!project.id) {
-      console.log('No project ID provided, generating one now');
-      project.id = Date.now().toString() + Math.floor(Math.random() * 1000).toString();
-    }
-    
-    // Ensure sync status is set
-    if (!project.syncStatus) {
-      project.syncStatus = 'synced';
-    }
-    
-    // Try to save with all available methods, starting with direct-save which is more reliable
-    // Direct save endpoint
-    try {
-      console.log('Attempting to save with direct-save endpoint first...');
-      
-      const directResponse = await fetch('/api/direct-save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-        },
-        body: JSON.stringify(project)
-      });
-      
-      if (directResponse.ok) {
-        const directResult = await directResponse.json();
-        console.log('Project saved successfully with direct-save endpoint. ID:', directResult.projectId);
-        return true;
-      }
-      
-      // Try to get error details from response
-      let errorData;
-      try {
-        errorData = await directResponse.json();
-      } catch (e) {
-        errorData = { message: 'Could not parse error response' };
-      }
-      
-      console.error(`Direct save response error: ${directResponse.status}`, errorData);
-      console.log('Direct save endpoint failed, trying primary save endpoint...');
-    } catch (directSaveError) {
-      console.error('Error with direct-save endpoint:', directSaveError);
-      console.log('Falling back to primary save endpoint...');
-    }
-    
-    // Try the normal save endpoint as fallback
+    // Try the normal save endpoint first
     try {
       // Make POST request to the API
       const response = await fetch('/api/projects/save', {
@@ -181,66 +135,49 @@ export async function saveCompletedProject(project: ProjectWithDetails): Promise
       if (response.ok) {
         // If response was successful, parse the result
         const result = await response.json();
-        console.log('Project saved successfully with primary save endpoint. ID:', result.projectId);
+        console.log('Project saved successfully with ID:', result.projectId);
         return true;
       }
       
       // If we get here, the response wasn't OK
-      console.error(`Primary save failed with status: ${response.status}`);
+      console.log('Primary save endpoint failed, trying direct save endpoint...');
+      throw new Error(`Primary save failed with status: ${response.status}`);
       
-      // Last resort, try with custom fetch implementation
-      return await saveProjectFallback(project);
-    } catch (saveError) {
-      console.error('All save methods failed:', saveError);
-      return false;
+    } catch (primarySaveError) {
+      console.error('Error with primary save endpoint:', primarySaveError);
+      
+      // Try the fallback direct-save endpoint
+      console.log('Attempting to save with direct-save endpoint...');
+      
+      const directResponse = await fetch('/api/direct-save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+        },
+        body: JSON.stringify(project)
+      });
+      
+      if (!directResponse.ok) {
+        // Try to get error details from response
+        let errorData;
+        try {
+          errorData = await directResponse.json();
+        } catch (e) {
+          errorData = { message: 'Could not parse error response' };
+        }
+        
+        console.error(`Direct save response error: ${directResponse.status}`, errorData);
+        return false;
+      }
+      
+      // Direct save was successful
+      const directResult = await directResponse.json();
+      console.log('Project saved successfully with direct-save endpoint. ID:', directResult.projectId);
+      return true;
     }
   } catch (error) {
     console.error('Error saving project:', error);
-    return false;
-  }
-}
-
-// Last resort fallback that attempts to save directly
-async function saveProjectFallback(project: ProjectWithDetails): Promise<boolean> {
-  try {
-    console.log('Attempting direct fetch fallback save...');
-    
-    // Prepare data for direct saving
-    const directSaveData = {
-      operation: 'saveProject',
-      projectData: {
-        id: project.id,
-        uid: project.uid,
-        title: project.title,
-        description: project.description,
-        projectType: project.projectType,
-        completedAt: project.completedAt,
-        syncStatus: project.syncStatus,
-        requiredItems: project.requiredItems,
-        steps: project.steps
-      }
-    };
-    
-    // Attempt direct POST to our custom endpoint
-    const response = await fetch('/api/custom-save', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Custom-Save': 'true',
-        'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-      },
-      body: JSON.stringify(directSaveData)
-    });
-    
-    if (response.ok) {
-      console.log('Project saved successfully with fallback method');
-      return true;
-    }
-    
-    console.error('Fallback save method also failed');
-    return false;
-  } catch (error) {
-    console.error('Error in save fallback:', error);
     return false;
   }
 } 

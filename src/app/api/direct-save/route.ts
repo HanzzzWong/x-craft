@@ -28,11 +28,10 @@ export async function POST(request: Request) {
     // Generate a project ID if not provided
     const projectId = project.id || uuidv4();
     
-    // Check for Projects table
+    // Check for Projects table - FIXED QUERY
     const hasProjectsTable = await executeQuery<{table_exists: number}>(`
       SELECT CASE 
-        WHEN EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Projects') 
-        THEN 1 
+        WHEN OBJECT_ID('Projects', 'U') IS NOT NULL THEN 1 
         ELSE 0 
       END AS table_exists
     `);
@@ -83,11 +82,10 @@ export async function POST(request: Request) {
       console.log('Project tables created successfully');
     }
     
-    // Check if user exists
+    // Check if user exists - FIXED QUERY
     const userCheck = await executeQuery<{user_exists: number}>(`
       SELECT CASE 
-        WHEN EXISTS (SELECT * FROM Users WHERE uid = @uid) 
-        THEN 1 
+        WHEN EXISTS (SELECT 1 FROM Users WHERE uid = @uid) THEN 1 
         ELSE 0 
       END AS user_exists
     `, { uid: project.uid });
@@ -109,42 +107,36 @@ export async function POST(request: Request) {
     }
     
     try {
-      // First check if we need to enable IDENTITY_INSERT
-      const tableInfo = await executeQuery<{is_identity: boolean}>(`
-        SELECT COLUMNPROPERTY(OBJECT_ID('Projects'), 'id', 'IsIdentity') as is_identity
-      `);
-      
-      const isIdentityColumn = tableInfo[0]?.is_identity === true;
-      console.log(`Projects.id is an identity column: ${isIdentityColumn}`);
-      
-      // Enable IDENTITY_INSERT if needed
-      if (isIdentityColumn) {
-        await executeQuery('SET IDENTITY_INSERT Projects ON');
-        console.log('IDENTITY_INSERT has been turned ON');
-      }
-      
-      // Use a simplified query to save the project
+      // Use a simplified query to save the project - FIXED QUERY
       const projectQuery = `
-        MERGE INTO Projects AS target
-        USING (SELECT @id AS id) AS source
-        ON (target.id = source.id)
-        WHEN MATCHED THEN
-          UPDATE SET 
-            title = @title,
-            description = @description,
-            project_type = @projectType,
-            completed_at = @completedAt,
-            sync_status = @syncStatus,
-            updated_at = GETDATE()
-        WHEN NOT MATCHED THEN
-          INSERT (
-            id, uid, title, description, project_type, 
-            completed_at, sync_status, created_at, updated_at
-          )
-          VALUES (
-            @id, @uid, @title, @description, @projectType,
-            @completedAt, @syncStatus, GETDATE(), GETDATE()
-          );
+        IF OBJECT_ID('Projects', 'U') IS NOT NULL
+        BEGIN
+          IF EXISTS (SELECT 1 FROM Projects WHERE id = @id)
+          BEGIN
+            -- Update existing project
+            UPDATE Projects
+            SET 
+              title = @title,
+              description = @description,
+              project_type = @projectType,
+              completed_at = @completedAt,
+              sync_status = @syncStatus,
+              updated_at = GETDATE()
+            WHERE id = @id
+          END
+          ELSE
+          BEGIN
+            -- Insert new project
+            INSERT INTO Projects (
+              id, uid, title, description, project_type, 
+              completed_at, sync_status, created_at, updated_at
+            )
+            VALUES (
+              @id, @uid, @title, @description, @projectType,
+              @completedAt, @syncStatus, GETDATE(), GETDATE()
+            )
+          END
+        END
       `;
       
       await executeQuery(projectQuery, {
@@ -156,12 +148,6 @@ export async function POST(request: Request) {
         completedAt: project.completedAt ? new Date(project.completedAt) : new Date(),
         syncStatus: project.syncStatus || 'synced'
       });
-      
-      // Turn IDENTITY_INSERT off if it was turned on
-      if (isIdentityColumn) {
-        await executeQuery('SET IDENTITY_INSERT Projects OFF');
-        console.log('IDENTITY_INSERT has been turned OFF');
-      }
       
       console.log(`Project saved with ID: ${projectId}`);
       

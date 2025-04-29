@@ -18,7 +18,7 @@ interface AuthResponse {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<AuthResponse>;
+  login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   updateUser: (user: User) => Promise<User>;
@@ -52,19 +52,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const response = await loginUser(email, password);
-      
-      // Validate the response contains user data
-      if (!response || !response.user) {
-        console.error('Invalid login response:', response);
-        throw new Error('Login failed: Invalid server response');
-      }
-      
-      setUser(response.user);
-      return response;
+      const { user: userData } = await loginUser(email, password);
+      setUser(userData);
     } catch (error) {
       console.error('Login failed:', error);
-      // Ensure we propagate the original error
       throw error;
     } finally {
       setLoading(false);

@@ -51,6 +51,10 @@ const nextConfig = {
     fetches: {
       fullUrl: true,
     },
+  },
+  // Suppress Firebase initialization logs
+  env: {
+    SUPPRESS_FIREBASE_LOGS: 'true'
   }
 };
 

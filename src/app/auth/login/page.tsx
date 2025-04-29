@@ -135,8 +135,8 @@ export default function LoginPage() {
       }, 500);
       
     } catch (error: any) {
-      // Handle auth errors with specific error message from server
-      let errorMessage = error.message || "Please check your credentials and try again.";
+      // Handle auth errors
+      let errorMessage = "Please check your credentials and try again.";
       
       console.error("Login error:", error);
       

@@ -63,10 +63,6 @@ export async function POST(request: Request) {
       }
     } catch (tableError) {
       console.error('Error checking Users table:', tableError);
-      return NextResponse.json(
-        { error: 'Error checking user account', details: tableError instanceof Error ? tableError.message : 'Unknown error' },
-        { status: 500 }
-      );
     }
     
     // Attempt to sign in the user
@@ -78,7 +74,6 @@ export async function POST(request: Request) {
     } catch (signInError: any) {
       console.error('Login error from signIn function:', signInError);
       
-      // Ensure we always return an object with an 'error' field
       return NextResponse.json(
         { error: signInError.message || 'Authentication failed' },
         { status: 401 }

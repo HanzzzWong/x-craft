@@ -12,10 +12,6 @@ export interface Project {
   projectType?: string | null;
   completedAt?: Date;
   syncStatus: string;
-  requiredItems?: string[];
-  steps?: string[];
-  createdAt?: Date;
-  updatedAt?: Date;
 }
 
 interface ProjectWithDetails extends Project {
@@ -60,71 +56,53 @@ export async function saveProject(project: Project): Promise<string> {
     const projectId = project.id || uuidv4();
     console.log(`Using project ID: ${projectId}`);
     
-    // Prepare completedAt properly, defaulting to current time if not provided
-    const completedAt = project.completedAt 
-      ? project.completedAt instanceof Date 
-        ? project.completedAt 
-        : new Date(project.completedAt) 
-      : new Date();
-    
-    console.log(`Setting completedAt to: ${completedAt.toISOString()}`);
+    // First, check if we can connect to the database and the required tables exist
+    try {
+      console.log('Checking for Projects table existence');
+      const tableCheck = await executeQuery<{table_id: number | null}>(`
+        SELECT OBJECT_ID('dbo.Projects', 'U') as table_id
+      `);
+      
+      if (!tableCheck || !tableCheck.length || !tableCheck[0]?.table_id) {
+        console.error('Projects table does not exist - will attempt to create it');
+        
+        // Create Projects table if it doesn't exist
+        await executeQuery(`
+          IF OBJECT_ID('dbo.Projects', 'U') IS NULL
+          CREATE TABLE Projects (
+            id NVARCHAR(100) PRIMARY KEY,
+            uid NVARCHAR(100) NOT NULL,
+            title NVARCHAR(255) NOT NULL,
+            description NVARCHAR(MAX),
+            project_type NVARCHAR(50),
+            completed_at DATETIME,
+            sync_status NVARCHAR(20) DEFAULT 'synced',
+            created_at DATETIME DEFAULT GETDATE(),
+            updated_at DATETIME DEFAULT GETDATE()
+          )
+        `);
+        console.log('Projects table created successfully');
+      } else {
+        console.log('Projects table exists, proceeding');
+      }
+    } catch (tableError) {
+      console.error('Error checking/creating Projects table:', tableError);
+      // Continue with the save anyway, in case the error was just in our checking query
+    }
     
     try {
-      // Try to use the stored procedure first (which has proper error handling in the updated schema)
-      console.log('Attempting to use SaveProject stored procedure');
-      await executeStoredProcedure('dbo.SaveProject', {
-        ProjectId: projectId,
-        UserId: project.uid,
-        Title: project.title,
-        Description: project.description,
-        ProjectType: project.projectType || null,
-        CompletedAt: completedAt,
-        SyncStatus: project.syncStatus || 'synced'
-      });
+      // Use direct SQL query instead of stored procedure for better error info
+      const completedAt = project.completedAt 
+        ? project.completedAt instanceof Date 
+          ? project.completedAt 
+          : new Date(project.completedAt) 
+        : new Date();
       
-      console.log(`Project saved successfully with stored procedure, ID: ${projectId}`);
-      return projectId;
-    } catch (procError) {
-      console.error('Error saving project with stored procedure:', procError);
-      console.log('Falling back to direct SQL query');
+      console.log(`Setting completedAt to: ${completedAt.toISOString()}`);
       
-      // First, check if we can connect to the database and the required tables exist
-      try {
-        console.log('Checking for Projects table existence');
-        const tableCheck = await executeQuery<{table_id: number | null}>(`
-          SELECT OBJECT_ID('dbo.Projects') as table_id
-        `);
-        
-        if (!tableCheck || !tableCheck.length || !tableCheck[0]?.table_id) {
-          console.error('Projects table does not exist - will attempt to create it');
-          
-          // Create Projects table if it doesn't exist
-          await executeQuery(`
-            IF OBJECT_ID('dbo.Projects', 'U') IS NULL
-            CREATE TABLE Projects (
-              id VARCHAR(50) PRIMARY KEY,
-              uid VARCHAR(50) NOT NULL,
-              title VARCHAR(255) NOT NULL,
-              description NVARCHAR(MAX) NOT NULL,
-              project_type VARCHAR(50) NULL,
-              completed_at DATETIME NOT NULL,
-              sync_status VARCHAR(20) NOT NULL DEFAULT 'synced',
-              created_at DATETIME NOT NULL DEFAULT GETDATE(),
-              updated_at DATETIME NOT NULL DEFAULT GETDATE()
-            )
-          `);
-          console.log('Projects table created successfully');
-        } else {
-          console.log('Projects table exists, proceeding');
-        }
-      } catch (tableError) {
-        console.error('Error checking/creating Projects table:', tableError);
-        // Continue with the save anyway, in case the error was just in our checking query
-      }
-      
-      // Use MERGE statement for better upsert handling
-      try {
-        const saveQuery = `
+      const saveQuery = `
+        IF OBJECT_ID('dbo.Projects', 'U') IS NOT NULL
+        BEGIN
           MERGE INTO Projects AS target
           USING (SELECT @ProjectId AS id) AS source
           ON (target.id = source.id)
@@ -139,80 +117,39 @@ export async function saveProject(project: Project): Promise<string> {
           WHEN NOT MATCHED THEN
             INSERT (id, uid, title, description, project_type, completed_at, sync_status, created_at, updated_at)
             VALUES (@ProjectId, @UserId, @Title, @Description, @ProjectType, @CompletedAt, @SyncStatus, GETDATE(), GETDATE());
-        `;
-        
-        console.log('Executing save query with MERGE statement');
-        await executeQuery(saveQuery, {
-          ProjectId: projectId,
-          UserId: project.uid,
-          Title: project.title,
-          Description: project.description,
-          ProjectType: project.projectType,
-          CompletedAt: completedAt,
-          SyncStatus: project.syncStatus || 'synced'
-        });
-        
-        console.log(`Project saved successfully with MERGE query, ID: ${projectId}`);
-        return projectId;
-      } catch (mergeError) {
-        console.error('Error saving project with MERGE query:', mergeError);
-        
-        // Last resort: try separate insert/update
-        console.log('Attempting separate insert/update as last resort');
-        
-        // Check if project exists
-        const existingProject = await executeQuery<{count: number}>(`
-          SELECT COUNT(*) as count FROM Projects WHERE id = @id
-        `, { id: projectId });
-        
-        if (existingProject[0].count > 0) {
-          // Update existing project
-          await executeQuery(`
-            UPDATE Projects
-            SET 
-              title = @Title,
-              description = @Description,
-              project_type = @ProjectType,
-              completed_at = @CompletedAt,
-              sync_status = @SyncStatus,
-              updated_at = GETDATE()
-            WHERE id = @id
-          `, {
-            id: projectId,
-            Title: project.title,
-            Description: project.description,
-            ProjectType: project.projectType,
-            CompletedAt: completedAt,
-            SyncStatus: project.syncStatus || 'synced'
-          });
-          
-          console.log(`Updated existing project with ID: ${projectId}`);
-        } else {
-          // Insert new project
-          await executeQuery(`
-            INSERT INTO Projects (
-              id, uid, title, description, project_type, 
-              completed_at, sync_status, created_at, updated_at
-            )
-            VALUES (
-              @ProjectId, @UserId, @Title, @Description, @ProjectType,
-              @CompletedAt, @SyncStatus, GETDATE(), GETDATE()
-            )
-          `, {
-            ProjectId: projectId,
-            UserId: project.uid,
-            Title: project.title,
-            Description: project.description,
-            ProjectType: project.projectType,
-            CompletedAt: completedAt,
-            SyncStatus: project.syncStatus || 'synced'
-          });
-          
-          console.log(`Inserted new project with ID: ${projectId}`);
-        }
-        
-        return projectId;
-      }
+        END
+      `;
+      
+      console.log('Executing save query with MERGE statement');
+      await executeQuery(saveQuery, {
+        ProjectId: projectId,
+        UserId: project.uid,
+        Title: project.title,
+        Description: project.description,
+        ProjectType: project.projectType,
+        CompletedAt: completedAt,
+        SyncStatus: project.syncStatus || 'synced'
+      });
+      
+      console.log(`Project saved successfully with ID: ${projectId}`);
+      return projectId;
+    } catch (saveError) {
+      console.error('Error saving project with direct query:', saveError);
+      
+      // Try with stored procedure as fallback
+      console.log('Attempting to use stored procedure as fallback');
+      await executeStoredProcedure('SaveProject', {
+        ProjectId: projectId,
+        UserId: project.uid,
+        Title: project.title,
+        Description: project.description,
+        ProjectType: project.projectType,
+        CompletedAt: project.completedAt instanceof Date ? project.completedAt : new Date(),
+        SyncStatus: project.syncStatus || 'synced'
+      });
+      
+      console.log(`Project saved successfully with stored procedure, ID: ${projectId}`);
+      return projectId;
     }
   } catch (error) {
     console.error('Error in saveProject function:', error);
@@ -223,7 +160,7 @@ export async function saveProject(project: Project): Promise<string> {
 // Add a project item
 export async function addProjectItem(item: ProjectItem): Promise<void> {
   try {
-    await executeStoredProcedure('dbo.AddProjectItem', {
+    await executeStoredProcedure('AddProjectItem', {
       ProjectId: item.projectId,
       ItemName: item.itemName,
       ItemOrder: item.itemOrder
@@ -237,7 +174,7 @@ export async function addProjectItem(item: ProjectItem): Promise<void> {
 // Add a project step
 export async function addProjectStep(step: ProjectStep): Promise<void> {
   try {
-    await executeStoredProcedure('dbo.AddProjectStep', {
+    await executeStoredProcedure('AddProjectStep', {
       ProjectId: step.projectId,
       StepContent: step.stepContent,
       StepOrder: step.stepOrder
@@ -251,7 +188,7 @@ export async function addProjectStep(step: ProjectStep): Promise<void> {
 // Get projects for a user
 export async function getUserProjects(userId: string): Promise<Project[]> {
   try {
-    const result = await executeStoredProcedure('dbo.GetUserProjects', {
+    const result = await executeStoredProcedure('GetUserProjects', {
       UserId: userId
     });
     
@@ -266,7 +203,7 @@ export async function getUserProjects(userId: string): Promise<Project[]> {
 // Get a project with all its details
 export async function getProjectWithDetails(projectId: string): Promise<ProjectWithDetails | null> {
   try {
-    const result = await executeStoredProcedure('dbo.GetProjectWithDetails', {
+    const result = await executeStoredProcedure('GetProjectWithDetails', {
       ProjectId: projectId
     });
     

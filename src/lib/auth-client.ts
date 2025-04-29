@@ -153,10 +153,7 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
     const responseData = await response.json();
     
     if (!response.ok) {
-      // Use the server's error message if available, fallback to a generic message
-      const errorMessage = responseData.error || responseData.message || 'Authentication failed';
-      console.error('Login failed:', errorMessage);
-      throw new Error(errorMessage);
+      throw new Error(responseData.message || 'Login failed');
     }
     
     // Store token in localStorage
