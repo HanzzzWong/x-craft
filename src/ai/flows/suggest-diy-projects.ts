@@ -19,6 +19,10 @@ const SuggestDIYProjectsInputSchema = z.object({
   recyclableItems: z
     .array(z.string())
     .describe('A list of identified recyclable items.'),
+  projectTypeQuery: z
+    .string()
+    .optional()
+    .describe('Optional query to specify project type (e.g., "with IoT sensors").'),
 });
 export type SuggestDIYProjectsInput = z.infer<
   typeof SuggestDIYProjectsInputSchema
@@ -51,6 +55,10 @@ const suggestDIYProjectsPrompt = ai.definePrompt({
       recyclableItems: z
         .array(z.string())
         .describe('A list of identified recyclable items.'),
+      projectTypeQuery: z
+        .string()
+        .optional()
+        .describe('Optional query to specify project type (e.g., "with IoT sensors").'),
     }),
   },
   output: {
@@ -74,7 +82,16 @@ const suggestDIYProjectsPrompt = ai.definePrompt({
   - {{{this}}}
   {{/each}}
 
+  {{#if projectTypeQuery}}
+  Project Type: Create DIY projects {{projectTypeQuery}}
+  {{/if}}
+
   Prioritize projects that can use the most of the given recyclable items. Suggest projects with clear titles, descriptions, required items, and step-by-step instructions.
+  
+  {{#if projectTypeQuery}}
+  Since this is a request for projects {{projectTypeQuery}}, be sure to include appropriate electronic components in the required items and explain how to integrate them in the steps.
+  {{/if}}
+  
   Return the output in JSON format.
   `,
 });

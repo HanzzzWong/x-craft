@@ -1,0 +1,121 @@
+import { NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
+import { getEmailPreferences, saveEmailPreferences } from '@/lib/projects';
+
+// JWT secret key for token verification
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here';
+
+// Verify JWT token from authorization header
+async function verifyToken(request: Request) {
+  try {
+    const authHeader = request.headers.get('authorization');
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('Missing or invalid authorization header');
+      throw new Error('Authentication required');
+    }
+    
+    const token = authHeader.split(' ')[1];
+    
+    // Try both formats: {uid: string} and {userId: string}
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as { uid?: string; userId?: string };
+      const userId = decoded.uid || decoded.userId;
+      
+      if (!userId) {
+        console.error('Token does not contain uid or userId');
+        throw new Error('Invalid token format');
+      }
+      
+      console.log('Token verified successfully for user:', userId);
+      return { uid: userId };
+    } catch (jwtError) {
+      console.error('JWT verification error:', jwtError);
+      throw new Error('Invalid or expired token');
+    }
+  } catch (error) {
+    console.error('Token verification error:', error);
+    throw error;
+  }
+}
+
+// GET email preferences
+export async function GET(request: Request) {
+  try {
+    console.log('Get email preferences request received');
+    
+    // Verify authorization
+    const decoded = await verifyToken(request);
+    const userId = decoded.uid;
+    
+    console.log('Token verified for user ID:', userId);
+    
+    // Get email preferences
+    const preferences = await getEmailPreferences(userId);
+    
+    return NextResponse.json({ preferences });
+  } catch (error: any) {
+    console.error('Error getting email preferences:', error);
+    
+    if (error.message === 'Authentication required' || error.message === 'Invalid or expired token') {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 401 }
+      );
+    }
+    
+    return NextResponse.json(
+      { error: 'Failed to get email preferences' },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT update email preferences
+export async function PUT(request: Request) {
+  try {
+    console.log('Update email preferences request received');
+    
+    // Verify authorization
+    const decoded = await verifyToken(request);
+    const userId = decoded.uid;
+    
+    console.log('Token verified for user ID:', userId);
+    
+    // Get request body
+    const preferences = await request.json();
+    
+    // Ensure we have the user ID
+    preferences.userId = userId;
+    
+    // Validate inputs
+    if (typeof preferences.projectUpdates !== 'boolean' || 
+        typeof preferences.marketingEmails !== 'boolean' || 
+        typeof preferences.weeklyDigest !== 'boolean') {
+      return NextResponse.json(
+        { error: 'Invalid preferences format' },
+        { status: 400 }
+      );
+    }
+    
+    // Save preferences
+    preferences.lastUpdated = new Date();
+    await saveEmailPreferences(preferences);
+    
+    return NextResponse.json({ success: true, preferences });
+  } catch (error: any) {
+    console.error('Error updating email preferences:', error);
+    
+    if (error.message === 'Authentication required' || error.message === 'Invalid or expired token') {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 401 }
+      );
+    }
+    
+    return NextResponse.json(
+      { error: 'Failed to update email preferences' },
+      { status: 500 }
+    );
+  }
+} 

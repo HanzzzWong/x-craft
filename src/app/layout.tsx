@@ -1,35 +1,27 @@
-import type {Metadata} from 'next';
-import {Geist, Geist_Mono} from 'next/font/google';
-import './globals.css';
-import { Navbar } from '@/components/ui/navbar';
+import '@/app/globals.css';
+import { Inter } from 'next/font/google';
+import ClientLayout from '@/components/client-layout';
+import type { Metadata } from 'next';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
+const inter = Inter({ subsets: ['latin'] });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
-
+// Export metadata for Next.js
 export const metadata: Metadata = {
-  title: 'X-Craft - Recycling Creative Studio',
-  description: 'Create amazing DIY projects from recyclable materials',
+  title: 'X-Craft',
+  description: 'Recycling crafts application',
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-animated min-h-screen`}>
-        <Navbar />
-        <main className="pt-6">
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <ClientLayout>
           {children}
-        </main>
+        </ClientLayout>
       </body>
     </html>
   );

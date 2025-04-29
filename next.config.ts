@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  reactStrictMode: false,
+  swcMinify: true,
+  experimental: {
+    optimizeCss: true,
+  },
 };
 
 export default nextConfig;

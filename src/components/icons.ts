@@ -9,6 +9,7 @@ import {
   Edit, 
   ExternalLink, 
   File, 
+  Folder,
   HelpCircle, 
   Home, 
   Image,
@@ -29,10 +30,15 @@ import {
   Sun, 
   Trash, 
   Upload,
-  User, 
+  User,
+  Users,
   Video,
+  Wifi,
+  WifiOff,
   X, 
-  Workflow
+  Workflow,
+  LogOut,
+  History
 } from 'lucide-react';
 
 const Icons = {
@@ -49,12 +55,15 @@ const Icons = {
   edit: Edit,
   externalLink: ExternalLink,
   file: File,
+  folder: Folder,
   helpCircle: HelpCircle,
+  history: History,
   home: Home,
   image: Image,
   lightbulb: Lightbulb,
   light: Sun,
   loader: Loader2,
+  logout: LogOut,
   mail: Mail,
   messageSquare: MessageSquare,
   plus: Plus,
@@ -69,7 +78,10 @@ const Icons = {
   trash: Trash,
   upload: Upload,
   user: User,
+  users: Users,
   video: Video,
+  wifi: Wifi,
+  wifiOff: WifiOff,
   panelLeft: PanelLeft
 };
 

@@ -1,0 +1,7 @@
+Please add the following GIF files to the public directory:
+
+1. student.gif - A GIF showing a student or educational setting
+2. personal.gif - A GIF showing an individual working on a DIY project
+3. sme.gif - A GIF showing a small business or entrepreneurial setting
+
+These files are required for the user profile selection page. 
